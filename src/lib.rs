@@ -1,3 +1,8 @@
+//! [<img alt="github" src="https://img.shields.io/badge/github-scpso%2Fconst--css--minify-7c72ff?logo=github">](https://github.com/scpso/const-css-minify)
+//! [<img alt="crates.io" src="https://img.shields.io/badge/crates.io-const--css--minify-f46623?logo=rust">](https://crates.io/crates/const-css-minify)
+//! [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-const--css--minify-ffc933?logo=docs.rs">](https://docs.rs/const-css-minify)
+//! [<img alt="status" src="https://img.shields.io/docsrs/const-css-minify/latest">]
+//!
 //! Include a minified css file as an inline const in your high-performance compiled web
 //! application.
 //!
