@@ -1,0 +1,15 @@
+[package]
+name = "const-css-minify"
+description = "Include a minified css file as an inline const in your high-performance compiled web application"
+version = "0.1.0"
+edition = "2021"
+authors = ["scpso"]
+repository = "https://github.com/scpso/const-css-minify"
+license = "MIT"
+keywords = ["css", "stylesheet"]
+categories = ["web-programming::http-server"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
