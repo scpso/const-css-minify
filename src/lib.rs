@@ -1,7 +1,6 @@
 //! [<img alt="github" src="https://img.shields.io/badge/github-scpso%2Fconst--css--minify-7c72ff?logo=github">](https://github.com/scpso/const-css-minify)
-//! [<img alt="crates.io" src="https://img.shields.io/badge/crates.io-const--css--minify-f46623?logo=rust">](https://crates.io/crates/const-css-minify)
-//! [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-const--css--minify-ffc933?logo=docs.rs">](https://docs.rs/const-css-minify)
-//! <img alt="status" src="https://img.shields.io/docsrs/const-css-minify/latest">
+//! [<img alt="crates.io" src="https://img.shields.io/crates/v/const-css-minify.svg?logo=rust">](https://crates.io/crates/const-css-minify)
+//! [<img alt="docs.rs" src="https://img.shields.io/docsrs/const-css-minify/latest?logo=docs.rs">](https://docs.rs/const-css-minify)
 //!
 //! Include a minified css file as an inline const in your high-performance compiled web
 //! application.
@@ -34,7 +33,7 @@
 //!
 //! const CSS: &str = minify!(r#"
 //!     input[type="radio"]:checked, .button:hover {
-//!         color: #ffffff;
+//!         color: rgb(100%, 100%, 100%);
 //!         margin: 10px 10px;
 //!     }
 //! "#);
@@ -51,9 +50,11 @@
 //! * remove unneeded whitespace and linebreaks
 //! * remove comments
 //! * remove unneeded trailing semicolon in each declaration block
-//! * opportunistically minify literal colors if and only if they can be expressed identically with
-//!   a 3 character code (e.g. `#ffffff` will be substituted for `#fff` but `#fffffe` and
+//! * opportunistically minify literal hex colors if and only if they can be expressed identically
+//!   with a 3 character code (e.g. `#ffffff` will be substituted for `#fff` but `#fffffe` and
 //!   `#ffffffff` will be left untouched)
+//! * minify colors specified by rgb function (e.g. rgb(255, 255, 254) will be substituted for
+//!   #fffffe, and rgb(255, 255, 255) for #fff)
 //! * silently ignore any actual css syntax errors originating in your source file, and in so doing
 //!   possibly elicit slightly different failure modes from renderers by altering the placement of
 //!   whitespace around misplaced operators.
@@ -247,34 +248,106 @@ fn parse(input: String) -> String {
                 state = State::Before;
             }
             // possible hex color
-            (b'#', State::During) => {
+            (b'#', State::During) if input.len() > read + 6 => {
                 minified.push(byte);
-                let hexes = [
-                    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c',
-                    b'd', b'e', b'f',
+                let colors = [
+                    [input[read + 1], input[read + 2]],
+                    [input[read + 3], input[read + 4]],
+                    [input[read + 5], input[read + 6]],
                 ];
-                if input.len() > read + 7 {
-                    let colors = [
-                        (input[read + 1], input[read + 2]),
-                        (input[read + 3], input[read + 4]),
-                        (input[read + 5], input[read + 6]),
-                    ];
-                    // avoid 8 hex char codes with alpha
-                    if !hexes.contains(&input[read + 7])
-                        && hexes.contains(&colors[0].0)
-                        && colors[0].0 == colors[0].1
-                        && hexes.contains(&colors[1].0)
-                        && colors[0].0 == colors[1].1
-                        && hexes.contains(&colors[2].0)
-                        && colors[0].0 == colors[2].1
-                    {
-                        minified.extend_from_slice(&[colors[0].0, colors[1].0, colors[2].0]);
-                        read += 7;
-                    } else {
-                        read += 1;
-                    }
+                // avoid 8 hex char codes with alpha
+                if !input[read + 7].is_ascii_hexdigit()
+                    && colors[0][0].is_ascii_hexdigit()
+                    && colors[0][0] == colors[0][1]
+                    && colors[1][0].is_ascii_hexdigit()
+                    && colors[1][0] == colors[1][1]
+                    && colors[2][0].is_ascii_hexdigit()
+                    && colors[2][0] == colors[2][1]
+                {
+                    minified.extend_from_slice(&[
+                        colors[0][0].to_ascii_lowercase(),
+                        colors[1][0].to_ascii_lowercase(),
+                        colors[2][0].to_ascii_lowercase(),
+                    ]);
+                    read += 7;
                 } else {
                     read += 1;
+                }
+            }
+            // possible rgb color
+            (b'r', State::During)
+                if input.len() > read + 8 && input[read + 1..=read + 3] == [b'g', b'b', b'('] =>
+            {
+                let mut rgb_d = [
+                    String::with_capacity(3),
+                    String::with_capacity(3),
+                    String::with_capacity(3),
+                ];
+                let mut rgb_u: [u8; 3] = [0; 3];
+                let mut rgb_h: [[u8; 2]; 3] = [[0, 0]; 3];
+                let mut shorts = [false, false, false];
+                let mut percents = [false, false, false];
+                let mut bail = false;
+                let mut i = 0;
+                peek = read + 4;
+                while input[peek] != b')' {
+                    //bail if we hit a comment or too many commas
+                    if input[peek] == b'/' || i == 3 {
+                        bail = true;
+                        break;
+                    }
+                    if input[peek].is_ascii_digit() {
+                        rgb_d[i].push(char::from(input[peek]));
+                    } else if input[peek] == b'%' {
+                        percents[i] = true;
+                    } else if input[peek] == b',' {
+                        i += 1;
+                    }
+                    peek += 1;
+                }
+                //check we got expected input
+                for j in 0..=2 {
+                    if rgb_d[j].is_empty() {
+                        bail = true;
+                    } else if percents[j] {
+                        let dec = u8::from_str(&rgb_d[j]).unwrap_or_else(|_| {
+                            bail = true;
+                            0
+                        });
+                        if !bail {
+                            rgb_u[j] = u8::try_from(u32::from(dec) * 255 / 100).unwrap();
+                        }
+                    } else {
+                        rgb_u[j] = u8::from_str(&rgb_d[j]).unwrap_or_else(|_| {
+                            bail = true;
+                            0
+                        });
+                    }
+                }
+                if bail || i != 2 {
+                    minified.push(input[read]);
+                    read += 1;
+                } else {
+                    for j in 0..=2 {
+                        if rgb_u[j] % 17 == 0 {
+                            shorts[j] = true;
+                        }
+                        //format as hexadecimal
+                        let bytes = format!("{:04x}", rgb_u[j]).into_bytes();
+                        //igore leading '0x' get only the actual hexadecimal digits
+                        rgb_h[j] = [bytes[2], bytes[3]];
+                    }
+                    minified.push(b'#');
+                    if shorts == [true, true, true] {
+                        for hex in rgb_h {
+                            minified.push(hex[0]);
+                        }
+                    } else {
+                        for hex in rgb_h {
+                            minified.extend_from_slice(&hex);
+                        }
+                    }
+                    read = peek + 1;
                 }
             }
             _ => {

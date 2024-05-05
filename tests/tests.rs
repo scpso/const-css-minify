@@ -78,4 +78,39 @@ mod tests {
     fn nested_classes() {
         assert_eq!(minify!("div { span {margin:1px}}"), "div{span{margin:1px}}");
     }
+
+    #[test]
+    fn hexcoded_6chars() {
+        assert_eq!(minify!("#{color:#aabbcc}"), "#{color:#abc}");
+        assert_eq!(minify!("#{color:#DDEEFF}"), "#{color:#def}");
+    }
+
+    #[test]
+    fn hexcoded_8chars() {
+        assert_eq!(minify!("#{color:#aabbccdd}"), "#{color:#aabbccdd}");
+    }
+
+    #[test]
+    fn rgbfunc_long() {
+        assert_eq!(minify!("#{color:rgb(255,255,254)}"), "#{color:#fffffe}");
+    }
+
+    #[test]
+    fn rgbfunc_short() {
+        assert_eq!(minify!("#{color:rgb(0, 0, 0)}"), "#{color:#000}");
+    }
+
+    #[test]
+    fn rgbfunc_percent() {
+        assert_eq!(minify!("#{color:rgb(0%, 0%, 0%)}"), "#{color:#000}");
+        assert_eq!(minify!("#{color:rgb(1%, 2%, 3%)}"), "#{color:#020507}");
+        assert_eq!(minify!("#{color:rgb(4%, 5%, 6%)}"), "#{color:#0a0c0f}");
+        assert_eq!(minify!("#{color:rgb(7%, 8%, 9%)}"), "#{color:#111416}");
+        assert_eq!(minify!("#{color:rgb(20%, 20%, 20%)}"), "#{color:#333}");
+        assert_eq!(minify!("#{color:rgb(40%, 40%, 40%)}"), "#{color:#666}");
+        assert_eq!(minify!("#{color:rgb(50%, 50%, 50%)}"), "#{color:#7f7f7f}");
+        assert_eq!(minify!("#{color:rgb(60%, 60%, 60%)}"), "#{color:#999}");
+        assert_eq!(minify!("#{color:rgb(80%, 80%, 80%)}"), "#{color:#ccc}");
+        assert_eq!(minify!("#{color:rgb(100%, 100%, 100%)}"), "#{color:#fff}");
+    }
 }

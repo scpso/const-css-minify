@@ -1,9 +1,8 @@
 # const-css-minify
 
 [<img alt="github" src="https://img.shields.io/badge/github-scpso%2Fconst--css--minify-7c72ff?logo=github">](https://github.com/scpso/const-css-minify)
-[<img alt="crates.io" src="https://img.shields.io/badge/crates.io-const--css--minify-f46623?logo=rust">](https://crates.io/crates/const-css-minify)
-[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-const--css--minify-ffc933?logo=docs.rs">](https://docs.rs/const-css-minify)
-<img alt="status" src="https://img.shields.io/docsrs/const-css-minify/latest">
+[<img alt="crates.io" src="https://img.shields.io/crates/v/const-css-minify.svg?logo=rust">](https://crates.io/crates/const-css-minify)
+[<img alt="docs.rs" src="https://img.shields.io/docsrs/const-css-minify/latest?logo=docs.rs">](https://docs.rs/const-css-minify)
 
 Include a minified css file as an inline const in your high-performance compiled web
 application.
@@ -19,9 +18,11 @@ you will not be able to change the css without recompiling your application.
 * remove unneeded whitespace and linebreaks
 * remove comments
 * remove unneeded trailing semicolon in each declaration block
-* opportunistically minify literal colors if and only if they can be expressed identically with
-  a 3 character code (e.g. `#ffffff` will be substituted for `#fff` but `#fffffe` and
+* opportunistically minify literal hex colors if and only if they can be expressed identically
+  with a 3 character code (e.g. `#ffffff` will be substituted for `#fff` but `#fffffe` and
   `#ffffffff` will be left untouched)
+* minify colors specified by rgb function (e.g. rgb(255, 255, 254) will be substituted for
+  #fffffe, and rgb(255, 255, 255) for #fff)
 * silently ignore any actual css syntax errors originating in your source file, and in so doing
   possibly elicit slightly different failure modes from renderers by altering the placement of
   whitespace around misplaced operators.
