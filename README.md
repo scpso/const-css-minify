@@ -19,10 +19,10 @@ you will not be able to change the css without recompiling your application.
 * remove comments
 * remove unneeded trailing semicolon in each declaration block
 * opportunistically minify literal hex colors if and only if they can be expressed identically
-  with a 3 character code (e.g. `#ffffff` will be substituted for `#fff` but `#fffffe` and
+  with a 3 character code (e.g. `#ffffff` will be substituted with `#fff` but `#fffffe` and
   `#ffffffff` will be left untouched)
-* minify colors specified by rgb function (e.g. rgb(255, 255, 254) will be substituted for
-  #fffffe, and rgb(255, 255, 255) for #fff)
+* minify colors specified by `rgb` function (e.g. `rgb(255, 255, 254)` will be substituted with
+  `#fffffe`, and `rgb(255, 255, 255)` with `#fff`)
 * silently ignore any actual css syntax errors originating in your source file, and in so doing
   possibly elicit slightly different failure modes from renderers by altering the placement of
   whitespace around misplaced operators.
