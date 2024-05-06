@@ -161,10 +161,20 @@ fn parse(input: String) -> String {
                 }
                 read = peek + 2;
             }
-            // identify and consume quotes
+            // identify and consume double quote strings
             (b'"', _) => {
                 peek = read + 1;
                 while input[peek] != b'"' {
+                    peek += 1;
+                }
+                minified.extend_from_slice(&input[read..=peek]);
+                read = peek + 1;
+                state = State::During;
+            }
+            // identify and consume single quote strings
+            (b'\'', _) => {
+                peek = read + 1;
+                while input[peek] != b'\'' {
                     peek += 1;
                 }
                 minified.extend_from_slice(&input[read..=peek]);

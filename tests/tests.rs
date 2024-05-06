@@ -70,6 +70,22 @@ mod tests {
     }
 
     #[test]
+    fn quotes() {
+        assert_eq!(
+            minify!(r#"#{font-family:"Times New Roman", "Courier New"}"#),
+            r#"#{font-family:"Times New Roman","Courier New"}"#,
+        );
+        assert_eq!(
+            minify!("#{font-family:'Times New Roman', 'Courier New'}"),
+            "#{font-family:'Times New Roman','Courier New'}",
+        );
+        assert_eq!(
+            minify!("#{font-family:'/* a comment inside a quote*/'}"),
+            "#{font-family:'/* a comment inside a quote*/'}",
+        );
+    }
+
+    #[test]
     fn pseudo_selectors() {
         assert_eq!(minify!("div :hover ::after{}"), "div :hover ::after{}");
     }
