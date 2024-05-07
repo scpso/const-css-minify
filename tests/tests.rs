@@ -71,17 +71,25 @@ mod tests {
 
     #[test]
     fn quotes() {
+        //raw str with double quotes
         assert_eq!(
             minify!(r#"#{font-family:"Times New Roman", "Courier New"}"#),
             r#"#{font-family:"Times New Roman","Courier New"}"#,
         );
+        //str with escaped double quotes
+        assert_eq!(
+            minify!("#{font-family:\"Times New Roman\", \"Courier New\"}"),
+            "#{font-family:\"Times New Roman\",\"Courier New\"}",
+        );
+        //str with single quotes
         assert_eq!(
             minify!("#{font-family:'Times New Roman', 'Courier New'}"),
             "#{font-family:'Times New Roman','Courier New'}",
         );
+        //str with comment inside single quotes
         assert_eq!(
-            minify!("#{font-family:'/* a comment inside a quote*/'}"),
-            "#{font-family:'/* a comment inside a quote*/'}",
+            minify!("#{font-family:'/*comment*/'}"),
+            "#{font-family:'/*comment*/'}"
         );
     }
 
@@ -128,5 +136,15 @@ mod tests {
         assert_eq!(minify!("#{color:rgb(60%, 60%, 60%)}"), "#{color:#999}");
         assert_eq!(minify!("#{color:rgb(80%, 80%, 80%)}"), "#{color:#ccc}");
         assert_eq!(minify!("#{color:rgb(100%, 100%, 100%)}"), "#{color:#fff}");
+    }
+
+    #[test]
+    fn shakedown() {
+        //include_str! inserts a newline at the end of the source file even though the file
+        //doesn't contain it so we copy it here
+        assert_eq!(
+            minify!("./tests/w3_source.css").to_string() + "\n",
+            include_str!("./w3_expected.css").to_string()
+        );
     }
 }

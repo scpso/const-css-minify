@@ -84,6 +84,20 @@ pub fn minify(input: TokenStream) -> TokenStream {
     };
     let mut literal = literal.to_string();
 
+    // not a raw string, so we must de-escape special chars
+    // this is not comprehensive but is anyone ever going to even notice?
+    // what weird and strange things might they even be trying to achieve?
+    if let Some(c) = literal.get(0..=0) {
+        if c != "r" {
+            literal = literal
+                .replace("\\\"", "\"")
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\\\", "\\")
+        }
+    }
+
     // trim leading and trailing ".." or r#".."# from string literal
     let start = &literal.find('\"').unwrap() + 1;
     let end = &literal.rfind('\"').unwrap() - 1;
@@ -98,11 +112,8 @@ pub fn minify(input: TokenStream) -> TokenStream {
 
     minified = parse(minified);
 
-    // escape backslashes and quotes before emitting as rust str token
-    minified = minified.replace('\\', "\\\\").replace('\"', "\\\"");
-
-    // finally, wrap in quotes, ready to emit as rust str token
-    minified = "\"".to_string() + &minified + "\"";
+    // wrap in quotes, ready to emit as rust raw str token
+    minified = "r####\"".to_string() + &minified + "\"####";
 
     TokenStream::from_str(&minified).unwrap()
 }
