@@ -50,16 +50,16 @@
 //! * remove unneeded whitespace and linebreaks
 //! * remove comments
 //! * remove unneeded trailing semicolon in each declaration block
-//! * opportunistically minify colors specified either by literal hex values or by `rgb()` and
-//!   `rgba()` functions (in either legacy syntax with commas or modern syntax without commas)
-//!   without changing the color. e.g. `#ffffff` will be substituted with `#fff`, `rgb(254 253 252)`
-//!   with `#fefdfc`, `rgba(20%, 40%, 60%, 0.8)` with `#369c`, etc. `const-css-minify` will not
-//!   attempt to calculate nested/complicated/relative rgb expressions (which will be passed
-//!   through unadulturated for the end user's browser to figure out for itself) but most
-//!   simple/literal expressions will be resolved and minified.
+//! * opportunistically minify colors specified either by literal hex values or by `rgb()`,
+//!   `rgba()`, `hsl()` and `hsla()` functions (in either legacy syntax with commas or modern
+//!   syntax without commas) without changing the color. e.g. `#ffffff` will be substituted with
+//!   `#fff`, `hsl(180 50 50)` with `#40bfbf`, `rgba(20%, 40%, 60%, 0.8)` with `#369c`, etc.
+//!   `const-css-minify` will not attempt to calculate nested/complicated/relative rgb expressions
+//!   (which will be passed through unadulturated for the end user's browser to figure out for
+//!   itself) but many simple/literal expressions will be resolved and minified.
 //! * silently ignore css syntax errors originating in your source file*, and in so doing possibly
 //!   elicit slightly different failure modes from renderers by altering the placement of
-//!   whitespace around misplaced operators*
+//!   whitespace around misplaced operators
 //!
 //! #### `const_css_minify` will ***not:***
 //! * compress your css using `gz`, `br` or `deflate`
@@ -69,14 +69,17 @@
 //!   characters it identifies as unnecessary
 //!
 //! note*: The current version of `const-css-minify` will emit compile-time warning messages for
-//! some syntax errors, including unclosed quote strings and unclosed comments, which indicate an
-//! error in the css (or a bug in `const-css-minify`), however these messages do not offer much
-//! help to the user to locate the source of the error. Internally, these error states are
-//! identifed and handled to avoid panicking due to indexing out-of-bounds, and so reporting the
-//! error message at compile time is in a sense 'for free', but this is a non-core feature of the
-//! library and may be removed in a future version if it turns out to do more harm than good. In
-//! any case, `const-css-minify` generally assumes it is being fed valid css as input offers no
+//! some syntax errors (specifically unclosed quote strings and comments) which indicate an error
+//! in the css (or a bug in `const-css-minify`), however these messages do not offer much help to
+//! the user to locate the source of the error. Internally, these error states are identifed and
+//! handled to avoid panicking due to indexing out-of-bounds, and so reporting the error message at
+//! compile time is in a sense 'for free', but this is a non-core feature of the library and may be
+//! removed in a future version if it turns out to do more harm than good. In any case,
+//! `const-css-minify` generally assumes it is being fed valid css as input and offers no
 //! guarantees about warnings. `const-css-minify` should not be relied upon for linting of css.
+//!
+//! `const_css_minify` is a lightweight solution - the current version of `const_css_minify` has
+//! zero dependencies outside rust's built-in std and proc_macro libraries.
 
 use proc_macro::TokenStream;
 use proc_macro::TokenTree::Literal;
@@ -437,6 +440,32 @@ impl<'a> Minifier<'a> {
                         read += 1;
                     }
                 }
+                // possible hsl func
+                b'h' if len > read + 9
+                    && (input[read + 1..=read + 3] == [b's', b'l', b'(']
+                        || input[read + 1..=read + 4] == [b's', b'l', b'a', b'(']) =>
+                {
+                    peek = read + 4;
+                    if input[peek] == b'(' {
+                        peek += 1;
+                    }
+                    while len > peek
+                        && input[peek] != b')'
+                        && RGB_FUNC_DECODABLE.contains(&input[peek])
+                    {
+                        peek += 1
+                    }
+                    if input[peek] == b')' {
+                        if let Ok(mut hex_color) = try_decode_hsl_func(&input[read..=peek]) {
+                            hex_color = try_minify_hex_color(&hex_color).unwrap();
+                            output.append(&mut hex_color);
+                            read = peek + 1;
+                            continue;
+                        }
+                    }
+                    output.push(input[read]);
+                    read += 1;
+                }
                 // possible rgb func
                 b'r' if len > read + 9
                     && (input[read + 1..=read + 3] == [b'g', b'b', b'(']
@@ -474,6 +503,119 @@ impl<'a> Minifier<'a> {
         self.output0.shrink_to_fit();
         self.output1 = output;
     }
+}
+
+/*
+ * requires input to start with "hsl(" or "hsla(" and end with ")"
+ */
+fn try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
+    let mut v = vec![b'#'];
+    let mut read = 3;
+    if input[read] == b'a' {
+        read += 1;
+    }
+    if input[read] != b'(' {
+        return Err(());
+    }
+    read += 1;
+    let mut hsla_d = [
+        String::with_capacity(10),
+        String::with_capacity(10),
+        String::with_capacity(10),
+        String::with_capacity(10),
+    ];
+    let mut percents = [false, false, false, false];
+    let mut i = 0;
+
+    while input[read] != b')' {
+        match input[read] {
+            x if !RGB_FUNC_DECODABLE.contains(&x) => return Err(()),
+            d if d.is_ascii_digit() || d == b'.' => hsla_d[i].push(char::from(d)),
+            b'%' => percents[i] = true,
+            b' ' | b',' | b'/' => {
+                i += 1;
+                while [b' ', b',', b'/'].contains(&input[read + 1]) {
+                    read += 1;
+                }
+            }
+            _ => unreachable!(), // did we add chars to RGB_FUNC_DECODABLE and not match here?
+        }
+        read += 1;
+    }
+
+    // check we got required input for h, s, l
+    for digits in &hsla_d[0..=2] {
+        if digits.is_empty() {
+            return Err(());
+        }
+    }
+
+    let h = f32::from_str(&hsla_d[0]).or(Err(()))?;
+    if !(0.0..=360.0).contains(&h) {
+        return Err(());
+    }
+    let s = f32::from_str(&hsla_d[1]).or(Err(()))? / 100.0;
+    if !(0.0..=1.0).contains(&s) {
+        return Err(());
+    }
+    let l = f32::from_str(&hsla_d[2]).or(Err(()))? / 100.0;
+    if !(0.0..=1.0).contains(&l) {
+        return Err(());
+    }
+
+    // weird algorithm from wikipedia...
+    let a = s * {
+        if l <= 0.5 {
+            l
+        } else {
+            1_f32 - l
+        }
+    };
+    let ks = [
+        (h / 30_f32) % 12_f32,
+        (8_f32 + h / 30_f32) % 12_f32,
+        (4_f32 + h / 30_f32) % 12_f32,
+    ];
+    for k in ks {
+        let c = match k {
+            ..=2_f32 => -1_f32,
+            2_f32..=4_f32 => k - 3_f32,
+            4_f32..=8_f32 => 1_f32,
+            8_f32..=10_f32 => 9_f32 - k,
+            10_f32.. => -1_f32,
+            _ => unreachable!(),
+        };
+        let integer = ((l - a * c) * 255_f32).round();
+        if integer < u8::MIN.into() || integer > u8::MAX.into() {
+            return Err(());
+        }
+        let byte: u8 = unsafe { integer.to_int_unchecked() };
+        let hex = format!("{:04x}", byte).into_bytes();
+        //igore leading '0x' get only the actual hexadecimal digits
+        v.push(hex[2]);
+        v.push(hex[3]);
+    }
+
+    // alpha channel
+    if !hsla_d[3].is_empty() && !["1", "1.0", "100"].contains(&hsla_d[3].as_str()) {
+        let decimal = f32::from_str(&hsla_d[3]).or(Err(()))?;
+        let integer = if percents[3] {
+            (decimal * 255_f32 / 100_f32).round()
+        } else {
+            (decimal * 255_f32).round()
+        };
+        if integer < u8::MIN.into() || integer > u8::MAX.into() {
+            return Err(());
+        }
+        let byte: u8 = unsafe { integer.to_int_unchecked() };
+
+        //format as hexadecimal
+        let hex = format!("{:04x}", byte).into_bytes();
+        //igore leading '0x' get only the actual hexadecimal digits
+        v.push(hex[2]);
+        v.push(hex[3]);
+    }
+    Ok(v)
 }
 
 /*

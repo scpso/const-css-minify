@@ -18,16 +18,16 @@ you will not be able to change the css without recompiling your application.
 * remove unneeded whitespace and linebreaks
 * remove comments
 * remove unneeded trailing semicolon in each declaration block
-* opportunistically minify colors specified either by literal hex values or by `rgb()` and
-  `rgba()` functions (in either legacy syntax with commas or modern syntax without commas)
-  without changing the color. e.g. `#ffffff` will be substituted with `#fff`, `rgb(254 253 252)`
-  with `#fefdfc`, `rgba(20%, 40%, 60%, 0.8)` with `#369c`, etc. `const-css-minify` will not
-  attempt to calculate nested/complicated/relative rgb expressions (which will be passed
-  through unadulturated for the end user's browser to figure out for itself) but most
-  simple/literal expressions will be resolved and minified.
+* opportunistically minify colors specified either by literal hex values or by `rgb()`,
+  `rgba()`, `hsl()` and `hsla()` functions (in either legacy syntax with commas or modern
+  syntax without commas) without changing the color. e.g. `#ffffff` will be substituted with
+  `#fff`, `hsl(180 50 50)` with `#40bfbf`, `rgba(20%, 40%, 60%, 0.8)` with `#369c`, etc.
+  `const-css-minify` will not attempt to calculate nested/complicated/relative rgb expressions
+  (which will be passed through unadulturated for the end user's browser to figure out for
+  itself) but many simple/literal expressions will be resolved and minified.
 * silently ignore css syntax errors originating in your source file*, and in so doing possibly
   elicit slightly different failure modes from renderers by altering the placement of
-  whitespace around misplaced operators*
+  whitespace around misplaced operators
 
 #### `const_css_minify` will ***not:***
 * compress your css using `gz`, `br` or `deflate`
@@ -35,5 +35,8 @@ you will not be able to change the css without recompiling your application.
 * make any substitutions other than identical literal colors
 * alert you to invalid css* - it's not truly parsing the css, just scanning for and removing
   characters it identifies as unnecessary
+
+`const_css_minify` is a lightweight solution - the current version of `const_css_minify` has
+zero dependencies outside rust's built-in std and proc_macro libraries.
 
 This project is licensed under the terms of the MIT License.
