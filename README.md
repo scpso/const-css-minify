@@ -14,24 +14,26 @@ application.
 `const_css_minify` is not a good solution if your css changes out-of-step with your binary, as
 you will not be able to change the css without recompiling your application.
 
-#### `const_css_minify` ***will***:
+#### `const_css_minify` ***will:***
 * remove unneeded whitespace and linebreaks
 * remove comments
 * remove unneeded trailing semicolon in each declaration block
-* opportunistically minify literal hex colors if and only if they can be expressed identically
-  with a 3 character code (e.g. `#ffffff` will be substituted with `#fff` but `#fffffe` and
-  `#ffffffff` will be left untouched)
-* minify colors specified by `rgb` function (e.g. `rgb(255, 255, 254)` will be substituted with
-  `#fffffe`, and `rgb(255, 255, 255)` with `#fff`)
-* silently ignore any actual css syntax errors originating in your source file, and in so doing
-  possibly elicit slightly different failure modes from renderers by altering the placement of
-  whitespace around misplaced operators.
+* opportunistically minify colors specified either by literal hex values or by `rgb()` and
+  `rgba()` functions (in either legacy syntax with commas or modern syntax without commas)
+  without changing the color. e.g. `#ffffff` will be substituted with `#fff`, `rgb(254 253 252)`
+  with `#fefdfc`, `rgba(20%, 40%, 60%, 0.8)` with `#369c`, etc. `const-css-minify` will not
+  attempt to calculate nested/complicated/relative rgb expressions (which will be passed
+  through unadulturated for the end user's browser to figure out for itself) but most
+  simple/literal expressions will be resolved and minified.
+* silently ignore css syntax errors originating in your source file*, and in so doing possibly
+  elicit slightly different failure modes from renderers by altering the placement of
+  whitespace around misplaced operators*
 
-#### `const_css_minify` will ***not***:
+#### `const_css_minify` will ***not:***
 * compress your css using `gz`, `br` or `deflate`
 * change the semantic meaning of your semantically valid css
 * make any substitutions other than identical literal colors
-* do anything at all to alert you to invalid css - it's not truly parsing the css, just
-  scanning for and removing characters it identifies as unnecessary.
+* alert you to invalid css* - it's not truly parsing the css, just scanning for and removing
+  characters it identifies as unnecessary
 
 This project is licensed under the terms of the MIT License.
