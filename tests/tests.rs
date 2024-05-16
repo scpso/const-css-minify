@@ -94,6 +94,14 @@ mod tests {
     }
 
     #[test]
+    fn unclosed_comments_quotes() {
+        //should not panic
+        assert_eq!(minify!("\""), "\"");
+        assert_eq!(minify!("'"), "'");
+        assert_eq!(minify!("/*"), "");
+    }
+
+    #[test]
     fn pseudo_selectors() {
         assert_eq!(minify!("div :hover ::after{}"), "div :hover ::after{}");
     }
@@ -104,38 +112,53 @@ mod tests {
     }
 
     #[test]
-    fn hexcoded_6chars() {
+    fn hexcode_colors() {
+        assert_eq!(minify!("#{color:#000}"), "#{color:#000}");
+        assert_eq!(minify!("#{color:#abc}"), "#{color:#abc}");
+        assert_eq!(minify!("#{color:#DEFG}"), "#{color:#DEFG}");
         assert_eq!(minify!("#{color:#aabbcc}"), "#{color:#abc}");
-        assert_eq!(minify!("#{color:#DDEEFF}"), "#{color:#def}");
+        assert_eq!(minify!("#{color:#aabbccdd}"), "#{color:#abcd}");
+        assert_eq!(minify!("#{color:#aabbb}"), "#{color:#aabbb}");
+        assert_eq!(minify!("#{color:#DDEEFFF}"), "#{color:#DDEEFFF}");
+        assert_eq!(minify!("#{color:#aabbccddd}"), "#{color:#aabbccddd}");
     }
 
     #[test]
-    fn hexcoded_8chars() {
-        assert_eq!(minify!("#{color:#aabbccdd}"), "#{color:#aabbccdd}");
-    }
-
-    #[test]
-    fn rgbfunc_long() {
-        assert_eq!(minify!("#{color:rgb(255,255,254)}"), "#{color:#fffffe}");
-    }
-
-    #[test]
-    fn rgbfunc_short() {
+    fn rgbfunc_legacy_style() {
         assert_eq!(minify!("#{color:rgb(0, 0, 0)}"), "#{color:#000}");
-    }
-
-    #[test]
-    fn rgbfunc_percent() {
+        assert_eq!(minify!("#{color:rgb(255,255,254)}"), "#{color:#fffffe}");
+        assert_eq!(minify!("#{color:rgb(255,255,255)}"), "#{color:#fff}");
         assert_eq!(minify!("#{color:rgb(0%, 0%, 0%)}"), "#{color:#000}");
-        assert_eq!(minify!("#{color:rgb(1%, 2%, 3%)}"), "#{color:#020507}");
-        assert_eq!(minify!("#{color:rgb(4%, 5%, 6%)}"), "#{color:#0a0c0f}");
-        assert_eq!(minify!("#{color:rgb(7%, 8%, 9%)}"), "#{color:#111416}");
+        assert_eq!(minify!("#{color:rgb(1%, 2%, 3%)}"), "#{color:#030508}");
+        assert_eq!(minify!("#{color:rgb(4%, 5%, 6%)}"), "#{color:#0a0d0f}");
+        assert_eq!(minify!("#{color:rgb(7%, 8%, 9%)}"), "#{color:#121417}");
         assert_eq!(minify!("#{color:rgb(20%, 20%, 20%)}"), "#{color:#333}");
         assert_eq!(minify!("#{color:rgb(40%, 40%, 40%)}"), "#{color:#666}");
-        assert_eq!(minify!("#{color:rgb(50%, 50%, 50%)}"), "#{color:#7f7f7f}");
+        assert_eq!(minify!("#{color:rgb(50%, 50%, 50%)}"), "#{color:#808080}");
         assert_eq!(minify!("#{color:rgb(60%, 60%, 60%)}"), "#{color:#999}");
         assert_eq!(minify!("#{color:rgb(80%, 80%, 80%)}"), "#{color:#ccc}");
         assert_eq!(minify!("#{color:rgb(100%, 100%, 100%)}"), "#{color:#fff}");
+        assert_eq!(minify!("#{color:rgba(0%, 0%, 0%, 0)}"), "#{color:#0000}");
+        assert_eq!(
+            minify!("#{color:rgba(100%, 100%, 100%, 0.5)}"),
+            "#{color:#ffffff80}"
+        );
+        assert_eq!(
+            minify!("#{color:rgba(100%, 100%, 100%, 1)}"),
+            "#{color:#fff}"
+        );
+        assert_eq!(
+            minify!("#{color:rgba(80%, 80%, 80%, 0.8)}"),
+            "#{color:#cccc}"
+        );
+    }
+
+    #[test]
+    fn rgbfunc_modern_style() {
+        assert_eq!(minify!("#{color:rgb(0 0 0)}"), "#{color:#000}");
+        assert_eq!(minify!("#{color:rgba(0 0 0)}"), "#{color:#000}");
+        assert_eq!(minify!("#{color:rgb(0 100% 255)}"), "#{color:#0ff}");
+        assert_eq!(minify!("#{color:rgb(0 0 0 / 0.5)}"), "#{color:#00000080}");
     }
 
     #[test]
@@ -143,7 +166,9 @@ mod tests {
         //include_str! inserts a newline at the end of the source file even though the file
         //doesn't contain it so we copy it here
         assert_eq!(
+            // source.css from w3schools.com
             minify!("./tests/w3_source.css").to_string() + "\n",
+            // expected.css produced by hand
             include_str!("./w3_expected.css").to_string()
         );
     }
