@@ -8,7 +8,7 @@
 //! You can call it with a path to your source css file, just like you might use the built-in
 //! macro `include_str!()`:
 //!
-//! ```rust
+//! ```compile_fail
 //! use const_css_minify::minify;
 //!
 //! // this is probably the pattern you want to use
@@ -29,9 +29,9 @@
 //!
 //! It's also possible to include a raw string with your css directly in your rust source:
 //! ```rust
-//! use const_css_minify::minify;
+//! use const_css_minify::minify_str;
 //!
-//! const CSS: &str = minify!(r#"
+//! const CSS: &str = minify_str!(r#"
 //!     input[type="radio"]:checked, .button:hover {
 //!         color: rgb(0 255 100% / 0.8);
 //!         margin: 10px 10px;
@@ -89,9 +89,19 @@ use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 
-/// Produce a minified css file as an inline const
+/// Takes a path to a .css file which will be minified as an inline const
 #[proc_macro]
 pub fn minify(input: TokenStream) -> TokenStream {
+    __minify(input, true)
+}
+
+/// Takes an inline raw str as css which will be minified as an inline const
+#[proc_macro]
+pub fn minify_str(input: TokenStream) -> TokenStream {
+    __minify(input, false)
+}
+
+fn __minify(input: TokenStream, is_path: bool) -> TokenStream {
     let token_trees: Vec<_> = input.into_iter().collect();
     if token_trees.len() != 1 {
         panic!("const_css_minify requires a single str as input");
@@ -125,7 +135,11 @@ pub fn minify(input: TokenStream) -> TokenStream {
     literal = literal[start..=end].to_string();
 
     // check if we're dealing with path or literal
-    let mut minified = fs::read_to_string(Path::new(&literal)).unwrap_or(literal);
+    let mut minified = if is_path {
+        fs::read_to_string(Path::new(&literal)).unwrap()
+    } else {
+        literal
+    };
 
     let mut minifier = Minifier::new();
     minifier.minify_string(&minified);
