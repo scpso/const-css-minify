@@ -149,7 +149,7 @@ fn __ccm_read_input_to_string(input: TokenStream) -> Option<String> {
 
 fn __ccm_minify(input: String) -> TokenStream {
     let mut minified = input;
-    let mut minifier = Minifier::new();
+    let mut minifier = __CcmMinifier::new();
     minifier.minify_string(&minified);
     minifier.emit_error_msgs();
     minified = minifier.get_output();
@@ -160,11 +160,11 @@ fn __ccm_minify(input: String) -> TokenStream {
     TokenStream::from_str(&minified).unwrap()
 }
 
-struct ParseError {
+struct __CcmParseError {
     msg: String,
 }
 
-impl ParseError {
+impl __CcmParseError {
     pub fn from_msg(msg: &str) -> Self {
         Self {
             msg: msg.to_string(),
@@ -172,7 +172,7 @@ impl ParseError {
     }
 }
 
-impl fmt::Display for ParseError {
+impl fmt::Display for __CcmParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.msg)
     }
@@ -180,7 +180,7 @@ impl fmt::Display for ParseError {
 
 // we do not attempt to decode all valid rgb func expressions, but we do attempt simple expressions
 // that consist of purely literal numeric expressions.
-const RGB_FUNC_DECODABLE: [u8; 15] = [
+const __CCM_RGB_FUNC_DECODABLE: [u8; 15] = [
     b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b' ', b',', b'%', b'.', b'/',
 ];
 
@@ -199,16 +199,16 @@ const RGB_FUNC_DECODABLE: [u8; 15] = [
  * intelligent handling of incorrect css is beyond this scope of this crate so this is
  * acceptable.
  */
-struct Minifier<'a> {
+struct __CcmMinifier<'a> {
     input: Option<&'a [u8]>,
     output0: Vec<u8>,
     output1: Vec<u8>,
     // start and end indexes
     quotes0: HashMap<usize, usize>,
-    errors: Vec<ParseError>,
+    errors: Vec<__CcmParseError>,
 }
 
-impl<'a> Minifier<'a> {
+impl<'a> __CcmMinifier<'a> {
     pub fn get_output(self) -> String {
         String::from_utf8(self.output1).unwrap()
     }
@@ -219,7 +219,7 @@ impl<'a> Minifier<'a> {
             output0: Vec::<u8>::with_capacity(0),
             output1: Vec::<u8>::with_capacity(0),
             quotes0: HashMap::<usize, usize>::new(),
-            errors: Vec::<ParseError>::new(),
+            errors: Vec::<__CcmParseError>::new(),
         }
     }
 
@@ -230,7 +230,7 @@ impl<'a> Minifier<'a> {
     }
 
     fn add_error_msg(&mut self, msg: &str) {
-        self.errors.push(ParseError::from_msg(msg));
+        self.errors.push(__CcmParseError::from_msg(msg));
     }
 
     fn emit_error_msgs(&self) {
@@ -454,7 +454,7 @@ impl<'a> Minifier<'a> {
                     while len > peek && input[peek].is_ascii_hexdigit() {
                         peek += 1;
                     }
-                    if let Ok(mut hex_color) = try_minify_hex_color(&input[read..peek]) {
+                    if let Ok(mut hex_color) = __ccm_try_minify_hex_color(&input[read..peek]) {
                         output.append(&mut hex_color);
                         read = peek;
                     } else {
@@ -473,13 +473,13 @@ impl<'a> Minifier<'a> {
                     }
                     while len > peek
                         && input[peek] != b')'
-                        && RGB_FUNC_DECODABLE.contains(&input[peek])
+                        && __CCM_RGB_FUNC_DECODABLE.contains(&input[peek])
                     {
                         peek += 1
                     }
                     if input[peek] == b')' {
-                        if let Ok(mut hex_color) = try_decode_hsl_func(&input[read..=peek]) {
-                            hex_color = try_minify_hex_color(&hex_color).unwrap();
+                        if let Ok(mut hex_color) = __ccm_try_decode_hsl_func(&input[read..=peek]) {
+                            hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
                             output.append(&mut hex_color);
                             read = peek + 1;
                             continue;
@@ -499,13 +499,13 @@ impl<'a> Minifier<'a> {
                     }
                     while len > peek
                         && input[peek] != b')'
-                        && RGB_FUNC_DECODABLE.contains(&input[peek])
+                        && __CCM_RGB_FUNC_DECODABLE.contains(&input[peek])
                     {
                         peek += 1
                     }
                     if input[peek] == b')' {
-                        if let Ok(mut hex_color) = try_decode_rgb_func(&input[read..=peek]) {
-                            hex_color = try_minify_hex_color(&hex_color).unwrap();
+                        if let Ok(mut hex_color) = __ccm_try_decode_rgb_func(&input[read..=peek]) {
+                            hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
                             output.append(&mut hex_color);
                             read = peek + 1;
                             continue;
@@ -530,7 +530,7 @@ impl<'a> Minifier<'a> {
 /*
  * requires input to start with "hsl(" or "hsla(" and end with ")"
  */
-fn try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
+fn __ccm_try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
     let mut v = vec![b'#'];
     let mut read = 3;
     if input[read] == b'a' {
@@ -551,7 +551,7 @@ fn try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
 
     while input[read] != b')' {
         match input[read] {
-            x if !RGB_FUNC_DECODABLE.contains(&x) => return Err(()),
+            x if !__CCM_RGB_FUNC_DECODABLE.contains(&x) => return Err(()),
             d if d.is_ascii_digit() || d == b'.' => hsla_d[i].push(char::from(d)),
             b'%' => percents[i] = true,
             b' ' | b',' | b'/' => {
@@ -560,7 +560,7 @@ fn try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
                     read += 1;
                 }
             }
-            _ => unreachable!(), // did we add chars to RGB_FUNC_DECODABLE and not match here?
+            _ => unreachable!(), // did we add chars to __CCM_RGB_FUNC_DECODABLE and not match here?
         }
         read += 1;
     }
@@ -643,7 +643,7 @@ fn try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
 /*
  * requires input to start with "rgb(" or "rgba(" and end with ")"
  */
-fn try_decode_rgb_func(input: &[u8]) -> Result<Vec<u8>, ()> {
+fn __ccm_try_decode_rgb_func(input: &[u8]) -> Result<Vec<u8>, ()> {
     let mut v = vec![b'#'];
     let mut read = 3;
     if input[read] == b'a' {
@@ -663,7 +663,7 @@ fn try_decode_rgb_func(input: &[u8]) -> Result<Vec<u8>, ()> {
     let mut i = 0;
     while input[read] != b')' {
         match input[read] {
-            x if !RGB_FUNC_DECODABLE.contains(&x) => return Err(()),
+            x if !__CCM_RGB_FUNC_DECODABLE.contains(&x) => return Err(()),
             d if d.is_ascii_digit() || d == b'.' => rgba_d[i].push(char::from(d)),
             b'%' => percents[i] = true,
             b' ' | b',' | b'/' => {
@@ -672,7 +672,7 @@ fn try_decode_rgb_func(input: &[u8]) -> Result<Vec<u8>, ()> {
                     read += 1;
                 }
             }
-            _ => unreachable!(), // did we add chars to RGB_FUNC_DECODABLE and not match here?
+            _ => unreachable!(), // did we add chars to __CCM_RGB_FUNC_DECODABLE and not match here?
         }
         read += 1;
     }
@@ -719,7 +719,7 @@ fn try_decode_rgb_func(input: &[u8]) -> Result<Vec<u8>, ()> {
     Ok(v)
 }
 
-fn try_minify_hex_color(input: &[u8]) -> Result<Vec<u8>, ()> {
+fn __ccm_try_minify_hex_color(input: &[u8]) -> Result<Vec<u8>, ()> {
     let len = input.len();
     if ![4, 5, 7, 9].contains(&len) || input[0] != b'#' {
         return Err(());
