@@ -36,7 +36,7 @@ mod tests {
      */
     #[test]
     fn finds_css_file() {
-        assert_eq!(minify!("./tests/test.css"), "#{color:#fff}");
+        assert_eq!(minify!("./test.css"), "#{color:#fff}");
     }
 
     #[test]
@@ -197,7 +197,7 @@ mod tests {
         //doesn't contain it so we copy it here
         assert_eq!(
             // source.css from w3schools.com
-            minify!("./tests/w3_source.css").to_string() + "\n",
+            minify!("./w3_source.css").to_string() + "\n",
             // expected.css produced by hand
             include_str!("./w3_expected.css").to_string()
         );

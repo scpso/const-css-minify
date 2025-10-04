@@ -17,13 +17,11 @@
 //!
 //! <div class="warning">
 //!
-//! ***IMPORTANT!*** the current version of `const_css_minify` resolves paths relative to the crate
-//! root (i.e. the directory where your `Cargo.toml` is). This behaviour is ***DIFFERENT*** from the
-//! rust built-in macros like `include_str!()` which use a path relative to the source file from
-//! which it's invoked. Consider the current behaviour unstable and likely to change  - our
-//! preference would be to match the established convention, but implementing this change is
-//! dependant on the stabilisation of a source path api in `proc_macro` as per
-//! <https://github.com/rust-lang/rust/issues/54725>
+//! ***IMPORTANT!*** the current version of `const_css_minify` resolves paths relative to the
+//! source file where it is invoked. This behaviour is consistent with the rust built-in macros
+//! like `include_str()`. This behaviour is ***DIFFERENT*** from versions `0.1.8` and prior of
+//! this crate, which resolved paths relative to the crate root (i.e. the directory where your
+//! `Cargo.toml` is).
 //!
 //! </div>
 //!
@@ -81,7 +79,7 @@
 //! `const_css_minify` is a lightweight solution - the current version of `const_css_minify` has
 //! zero dependencies outside rust's built-in std and proc_macro libraries.
 
-use proc_macro::TokenStream;
+use proc_macro::{Span,TokenStream};
 use proc_macro::TokenTree::Literal;
 use std::collections::HashMap;
 use std::fmt;
@@ -136,7 +134,9 @@ fn __minify(input: TokenStream, is_path: bool) -> TokenStream {
 
     // check if we're dealing with path or literal
     let mut minified = if is_path {
-        fs::read_to_string(Path::new(&literal)).unwrap()
+        let call_path = Span::call_site().local_file().unwrap();
+        let target_path = call_path.parent().unwrap().join(Path::new(&literal));
+        fs::read_to_string(target_path).expect(&format!("could not find file {}", &literal))
     } else {
         literal
     };
