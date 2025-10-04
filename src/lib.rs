@@ -93,7 +93,7 @@ pub fn minify(input: TokenStream) -> TokenStream {
     if let Some(input) = __ccm_read_input_to_string(input) {
         let call_path = Span::call_site().local_file().unwrap();
         let target_path = call_path.parent().unwrap().join(Path::new(&input));
-        let content = fs::read_to_string(target_path).expect(&format!("could not find file {}", &input));
+        let content = fs::read_to_string(target_path).unwrap_or_else(|_| panic!("could not find file {}", input));
         __ccm_minify(content)
     } else {
         //bail if input is empty
@@ -125,15 +125,15 @@ fn __ccm_read_input_to_string(input: TokenStream) -> Option<String> {
     // not a raw string, so we must de-escape special chars
     // this is not comprehensive but is anyone ever going to even notice?
     // what weird and strange things might they even be trying to achieve?
-    if let Some(c) = literal.get(0..=0) {
-        if c != "r" {
-            literal = literal
-                .replace("\\\"", "\"")
-                .replace("\\n", "\n")
-                .replace("\\r", "\r")
-                .replace("\\t", "\t")
-                .replace("\\\\", "\\")
-        }
+    if let Some(c) = literal.get(0..=0)
+        && c != "r"
+    {
+        literal = literal
+            .replace("\\\"", "\"")
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace("\\t", "\t")
+            .replace("\\\\", "\\")
     }
 
     // trim leading and trailing ".." or r#".."# from string literal
@@ -259,10 +259,10 @@ impl<'a> __CcmMinifier<'a> {
                     // comment was preceeded by whitespace, we might end up with two consecutive
                     // whitespaces, which violates the promise of this method. Thus we explicitly
                     // check and remove it if present.
-                    if let Some(last) = output.pop() {
-                        if last != b' ' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b' '
+                    {
+                        output.push(last);
                     }
                     read += 1;
                     while read < len && input[read].is_ascii_whitespace() {
@@ -353,10 +353,10 @@ impl<'a> __CcmMinifier<'a> {
                 // enter declaration block
                 b'{' => {
                     backreference = None;
-                    if let Some(last) = output.pop() {
-                        if last != b' ' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b' '
+                    {
+                        output.push(last);
                     }
                     output.push(input[read]);
                     read += 1;
@@ -371,16 +371,16 @@ impl<'a> __CcmMinifier<'a> {
                         output.remove(br);
                     }
                     backreference = None;
-                    if let Some(last) = output.pop() {
-                        if last != b' ' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b' '
+                    {
+                        output.push(last);
                     }
                     // drop final semicolon in declaration block
-                    if let Some(last) = output.pop() {
-                        if last != b';' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b';'
+                    {
+                        output.push(last);
                     }
                     output.push(input[read]);
                     read += 1;
@@ -416,10 +416,10 @@ impl<'a> __CcmMinifier<'a> {
                 // comma separator
                 b',' => {
                     // drop spaces preceeding commas
-                    if let Some(last) = output.pop() {
-                        if last != b' ' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b' '
+                    {
+                        output.push(last);
                     }
                     output.push(input[read]);
                     read += 1;
@@ -435,10 +435,10 @@ impl<'a> __CcmMinifier<'a> {
                     }
                     backreference = None;
                     // drop leading space
-                    if let Some(last) = output.pop() {
-                        if last != b' ' {
-                            output.push(last);
-                        }
+                    if let Some(last) = output.pop()
+                        && last != b' '
+                    {
+                        output.push(last);
                     }
                     output.push(input[read]);
                     read += 1;
@@ -477,13 +477,13 @@ impl<'a> __CcmMinifier<'a> {
                     {
                         peek += 1
                     }
-                    if input[peek] == b')' {
-                        if let Ok(mut hex_color) = __ccm_try_decode_hsl_func(&input[read..=peek]) {
-                            hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
-                            output.append(&mut hex_color);
-                            read = peek + 1;
-                            continue;
-                        }
+                    if input[peek] == b')' &&
+                        let Ok(mut hex_color) = __ccm_try_decode_hsl_func(&input[read..=peek])
+                    {
+                        hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
+                        output.append(&mut hex_color);
+                        read = peek + 1;
+                        continue;
                     }
                     output.push(input[read]);
                     read += 1;
@@ -503,13 +503,13 @@ impl<'a> __CcmMinifier<'a> {
                     {
                         peek += 1
                     }
-                    if input[peek] == b')' {
-                        if let Ok(mut hex_color) = __ccm_try_decode_rgb_func(&input[read..=peek]) {
-                            hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
-                            output.append(&mut hex_color);
-                            read = peek + 1;
-                            continue;
-                        }
+                    if input[peek] == b')'
+                        && let Ok(mut hex_color) = __ccm_try_decode_rgb_func(&input[read..=peek])
+                    {
+                        hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
+                        output.append(&mut hex_color);
+                        read = peek + 1;
+                        continue;
                     }
                     output.push(input[read]);
                     read += 1;
