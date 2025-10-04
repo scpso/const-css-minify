@@ -90,16 +90,29 @@ use std::str::FromStr;
 /// Takes a path to a .css file which will be minified as an inline const
 #[proc_macro]
 pub fn minify(input: TokenStream) -> TokenStream {
-    __minify(input, true)
+    if let Some(input) = __ccm_read_input_to_string(input) {
+        let call_path = Span::call_site().local_file().unwrap();
+        let target_path = call_path.parent().unwrap().join(Path::new(&input));
+        let content = fs::read_to_string(target_path).expect(&format!("could not find file {}", &input));
+        __ccm_minify(content)
+    } else {
+        //bail if input is empty
+        TokenStream::from_str("\"\"").unwrap()
+    }
 }
 
 /// Takes an inline raw str as css which will be minified as an inline const
 #[proc_macro]
 pub fn minify_str(input: TokenStream) -> TokenStream {
-    __minify(input, false)
+    if let Some(input) = __ccm_read_input_to_string(input) {
+        __ccm_minify(input)
+    } else {
+        //bail if input is empty
+        TokenStream::from_str("\"\"").unwrap()
+    }
 }
 
-fn __minify(input: TokenStream, is_path: bool) -> TokenStream {
+fn __ccm_read_input_to_string(input: TokenStream) -> Option<String> {
     let token_trees: Vec<_> = input.into_iter().collect();
     if token_trees.len() != 1 {
         panic!("const_css_minify requires a single str as input");
@@ -128,19 +141,14 @@ fn __minify(input: TokenStream, is_path: bool) -> TokenStream {
     let end = &literal.rfind('\"').unwrap() - 1;
     //bail if literal is empty
     if start > end {
-        return TokenStream::from_str(&literal).unwrap();
-    }
-    literal = literal[start..=end].to_string();
-
-    // check if we're dealing with path or literal
-    let mut minified = if is_path {
-        let call_path = Span::call_site().local_file().unwrap();
-        let target_path = call_path.parent().unwrap().join(Path::new(&literal));
-        fs::read_to_string(target_path).expect(&format!("could not find file {}", &literal))
+        None
     } else {
-        literal
-    };
+        Some(literal[start..=end].to_string())
+    }
+}
 
+fn __ccm_minify(input: String) -> TokenStream {
+    let mut minified = input;
     let mut minifier = Minifier::new();
     minifier.minify_string(&minified);
     minifier.emit_error_msgs();
