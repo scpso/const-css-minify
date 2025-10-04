@@ -108,7 +108,10 @@ mod tests {
 
     #[test]
     fn nested_classes() {
-        assert_eq!(minify_str!("div { span {margin:1px}}"), "div{span{margin:1px}}");
+        assert_eq!(
+            minify_str!("div { span {margin:1px}}"),
+            "div{span{margin:1px}}"
+        );
     }
 
     #[test]
@@ -128,12 +131,30 @@ mod tests {
         assert_eq!(minify_str!("#{color:hsl(0, 0%, 0%)}"), "#{color:#000}");
         assert_eq!(minify_str!("#{color:hsl(0, 0%, 100%)}"), "#{color:#fff}");
         assert_eq!(minify_str!("#{color:hsl(0, 50%, 50%)}"), "#{color:#bf4040}");
-        assert_eq!(minify_str!("#{color:hsl(60, 50%, 50%)}"), "#{color:#bfbf40}");
-        assert_eq!(minify_str!("#{color:hsl(120, 50%, 50%)}"), "#{color:#40bf40}");
-        assert_eq!(minify_str!("#{color:hsl(180, 50%, 50%)}"), "#{color:#40bfbf}");
-        assert_eq!(minify_str!("#{color:hsl(240, 50%, 50%)}"), "#{color:#4040bf}");
-        assert_eq!(minify_str!("#{color:hsl(300, 50%, 50%)}"), "#{color:#bf40bf}");
-        assert_eq!(minify_str!("#{color:hsl(360, 50%, 50%)}"), "#{color:#bf4040}");
+        assert_eq!(
+            minify_str!("#{color:hsl(60, 50%, 50%)}"),
+            "#{color:#bfbf40}"
+        );
+        assert_eq!(
+            minify_str!("#{color:hsl(120, 50%, 50%)}"),
+            "#{color:#40bf40}"
+        );
+        assert_eq!(
+            minify_str!("#{color:hsl(180, 50%, 50%)}"),
+            "#{color:#40bfbf}"
+        );
+        assert_eq!(
+            minify_str!("#{color:hsl(240, 50%, 50%)}"),
+            "#{color:#4040bf}"
+        );
+        assert_eq!(
+            minify_str!("#{color:hsl(300, 50%, 50%)}"),
+            "#{color:#bf40bf}"
+        );
+        assert_eq!(
+            minify_str!("#{color:hsl(360, 50%, 50%)}"),
+            "#{color:#bf4040}"
+        );
         assert_eq!(
             minify_str!("#{color:hsla(30, 100%, 40%, 0.2)}"),
             "#{color:#c603}"
@@ -164,11 +185,20 @@ mod tests {
         assert_eq!(minify_str!("#{color:rgb(7%, 8%, 9%)}"), "#{color:#121417}");
         assert_eq!(minify_str!("#{color:rgb(20%, 20%, 20%)}"), "#{color:#333}");
         assert_eq!(minify_str!("#{color:rgb(40%, 40%, 40%)}"), "#{color:#666}");
-        assert_eq!(minify_str!("#{color:rgb(50%, 50%, 50%)}"), "#{color:#808080}");
+        assert_eq!(
+            minify_str!("#{color:rgb(50%, 50%, 50%)}"),
+            "#{color:#808080}"
+        );
         assert_eq!(minify_str!("#{color:rgb(60%, 60%, 60%)}"), "#{color:#999}");
         assert_eq!(minify_str!("#{color:rgb(80%, 80%, 80%)}"), "#{color:#ccc}");
-        assert_eq!(minify_str!("#{color:rgb(100%, 100%, 100%)}"), "#{color:#fff}");
-        assert_eq!(minify_str!("#{color:rgba(0%, 0%, 0%, 0)}"), "#{color:#0000}");
+        assert_eq!(
+            minify_str!("#{color:rgb(100%, 100%, 100%)}"),
+            "#{color:#fff}"
+        );
+        assert_eq!(
+            minify_str!("#{color:rgba(0%, 0%, 0%, 0)}"),
+            "#{color:#0000}"
+        );
         assert_eq!(
             minify_str!("#{color:rgba(100%, 100%, 100%, 0.5)}"),
             "#{color:#ffffff80}"
@@ -188,7 +218,10 @@ mod tests {
         assert_eq!(minify_str!("#{color:rgb(0 0 0)}"), "#{color:#000}");
         assert_eq!(minify_str!("#{color:rgba(0 0 0)}"), "#{color:#000}");
         assert_eq!(minify_str!("#{color:rgb(0 100% 255)}"), "#{color:#0ff}");
-        assert_eq!(minify_str!("#{color:rgb(0 0 0 / 0.5)}"), "#{color:#00000080}");
+        assert_eq!(
+            minify_str!("#{color:rgb(0 0 0 / 0.5)}"),
+            "#{color:#00000080}"
+        );
     }
 
     #[test]

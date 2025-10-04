@@ -79,8 +79,8 @@
 //! `const_css_minify` is a lightweight solution - the current version of `const_css_minify` has
 //! zero dependencies outside rust's built-in std and proc_macro libraries.
 
-use proc_macro::{Span,TokenStream};
 use proc_macro::TokenTree::Literal;
+use proc_macro::{Span, TokenStream};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
@@ -93,7 +93,8 @@ pub fn minify(input: TokenStream) -> TokenStream {
     if let Some(input) = __ccm_read_input_to_string(input) {
         let call_path = Span::call_site().local_file().unwrap();
         let target_path = call_path.parent().unwrap().join(Path::new(&input));
-        let content = fs::read_to_string(target_path).unwrap_or_else(|_| panic!("could not find file {}", input));
+        let content = fs::read_to_string(target_path)
+            .unwrap_or_else(|_| panic!("could not find file {}", input));
         __ccm_minify(content)
     } else {
         //bail if input is empty
@@ -477,8 +478,8 @@ impl<'a> __CcmMinifier<'a> {
                     {
                         peek += 1
                     }
-                    if input[peek] == b')' &&
-                        let Ok(mut hex_color) = __ccm_try_decode_hsl_func(&input[read..=peek])
+                    if input[peek] == b')'
+                        && let Ok(mut hex_color) = __ccm_try_decode_hsl_func(&input[read..=peek])
                     {
                         hex_color = __ccm_try_minify_hex_color(&hex_color).unwrap();
                         output.append(&mut hex_color);
@@ -586,13 +587,7 @@ fn __ccm_try_decode_hsl_func(input: &[u8]) -> Result<Vec<u8>, ()> {
     }
 
     // weird algorithm from wikipedia...
-    let a = s * {
-        if l <= 0.5 {
-            l
-        } else {
-            1_f32 - l
-        }
-    };
+    let a = s * { if l <= 0.5 { l } else { 1_f32 - l } };
     let ks = [
         (h / 30_f32) % 12_f32,
         (8_f32 + h / 30_f32) % 12_f32,
