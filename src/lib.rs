@@ -8,7 +8,7 @@
 //! You can call it with a path to your source css file, just like you might use the built-in
 //! macro `include_str!()`:
 //!
-//! ```compile_fail
+//! ```
 //! use const_css_minify::minify;
 //!
 //! // this is probably the pattern you want to use
@@ -26,7 +26,7 @@
 //! </div>
 //!
 //! It's also possible to include a raw string with your css directly in your rust source:
-//! ```rust
+//! ```
 //! use const_css_minify::minify_str;
 //!
 //! const CSS: &str = minify_str!(r#"
@@ -35,7 +35,7 @@
 //!         margin: 10px 10px;
 //!     }
 //! "#);
-//! assert_eq!(CSS, "input[type=\"radio\"]:checked,.button:hover{color:#0ffc;margin:10px 10px}");
+//! assert_eq!(CSS, r#"input[type="radio"]:checked,.button:hover{color:#0ffc;margin:10px 10px}"#);
 //! ```
 //!
 //! Note also that the current version of `const_css_minify` does not support passing in a variable.

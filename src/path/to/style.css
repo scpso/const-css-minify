@@ -1,0 +1,10 @@
+/*
+ * This file exists only to make the doctest which invokes it pass.
+ * Actually creating this file and putting it in the repo feels like a terrible
+ * hack but I haven't yet found another way to satisfy the test runner other
+ * than using `ignore` or `compile_fail` attributes, and both of these then
+ * render additional warnings in the docs themselves which, to me, are likely
+ * to distract and confuse readers.
+ * Thus, creating this useless file seems like the lesser of two evils. If
+ * someone has a better solution I'm all ears.
+ */
